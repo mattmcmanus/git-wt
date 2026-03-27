@@ -2,8 +2,22 @@
 
 load test_helper/setup
 
+# add requires get_main_worktree_dir to return the actual main worktree,
+# not a bare repo. Use a non-bare setup so "../$dir_name" lands in CONTAINER_DIR.
+create_non_bare_repo() {
+    CONTAINER_DIR="$TEST_DIR/worktrees"
+    mkdir -p "$CONTAINER_DIR"
+
+    MAIN_WORKTREE="$CONTAINER_DIR/main"
+    git init "$MAIN_WORKTREE"
+    cd "$MAIN_WORKTREE"
+    echo "initial" > README.md
+    git add README.md
+    git commit -m "Initial commit"
+}
+
 @test "add creates a new worktree for a new branch" {
-    create_test_repo
+    create_non_bare_repo
     cd "$MAIN_WORKTREE"
 
     "$GIT_WT" add test-branch </dev/null &
@@ -18,7 +32,7 @@ load test_helper/setup
 }
 
 @test "add checks out existing branch if it exists" {
-    create_test_repo
+    create_non_bare_repo
     cd "$MAIN_WORKTREE"
     git branch existing-branch
 
@@ -34,7 +48,7 @@ load test_helper/setup
 }
 
 @test "add converts slashes in branch name to dashes for directory" {
-    create_test_repo
+    create_non_bare_repo
     cd "$MAIN_WORKTREE"
 
     "$GIT_WT" add feature/my-thing </dev/null &
@@ -47,7 +61,7 @@ load test_helper/setup
 }
 
 @test "add errors when no name provided" {
-    create_test_repo
+    create_non_bare_repo
     cd "$MAIN_WORKTREE"
 
     run "$GIT_WT" add
