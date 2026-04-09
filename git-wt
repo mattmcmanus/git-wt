@@ -31,6 +31,10 @@ get_main_worktree_dir() {
 	git worktree list --porcelain | grep -E 'worktree ' | awk '{print $0; exit}' | cut -d ' ' -f2-
 }
 
+worktree_directories() {
+	git worktree list --porcelain | grep -E '^worktree ' | awk '{print $2}' | tail -n +2
+}
+
 goto_main_worktree() {
 	worktree_dir=$(get_main_worktree_dir)
 	change_worktree
@@ -102,7 +106,10 @@ remove_worktree() {
 	[yY][eE][sS] | [yY])
 		echo "Removing..."
 		git worktree remove "$worktree_dir"
-		git worktree prune
+		if ! pwd >/dev/null 2>&1 ; then
+			cd "$(get_main_worktree_dir)"
+		fi
+    git worktree prune
 		echo "Worktree removed and pruned."
 		;;
 	*)
@@ -130,7 +137,7 @@ clean_merged_worktrees() {
 	local container_dir
 	container_dir="$(dirname "$main_worktree")"
 	cd "$container_dir"
-	for dir in */; do
+	for dir in `worktree_directories`; do
 		dir="${dir%/}"
 		if [ "$dir" != "$(basename "$main_worktree")" ]; then
 			cd "$container_dir/$dir"
@@ -161,7 +168,7 @@ post_add_worktree() {
 
 	while true; do
 		if [ -x "$search_dir/.wt/post-add-worktree" ]; then
-			"$search_dir/.wt/post-add-worktree" "$worktree_path"
+			"$search_dir/.wt/post-add-worktree" "$worktree_path" "$(get_main_worktree_dir)"
 			return 0
 		fi
 
@@ -184,7 +191,7 @@ post_add_worktree() {
 
 	# Global fallback: check ~/.wt/ if we didn't already walk through $HOME
 	if [ -x "$HOME/.wt/post-add-worktree" ]; then
-		"$HOME/.wt/post-add-worktree" "$worktree_path"
+		"$HOME/.wt/post-add-worktree" "$worktree_path" "$(get_main_worktree_dir)"
 		return 0
 	fi
 }
@@ -197,6 +204,9 @@ select_worktree() {
 case "${args[0]}" in
 list)
 	worktree_list
+	;;
+worktree-directories)
+	worktree_directories
 	;;
 add)
 	if [ -z "${args[1]}" ]; then
