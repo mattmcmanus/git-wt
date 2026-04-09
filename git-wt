@@ -106,7 +106,10 @@ remove_worktree() {
 	[yY][eE][sS] | [yY])
 		echo "Removing..."
 		git worktree remove "$worktree_dir"
-		git worktree prune
+		if ! pwd >/dev/null 2>&1 ; then
+			cd "$(get_main_worktree_dir)"
+		fi
+    git worktree prune
 		echo "Worktree removed and pruned."
 		;;
 	*)
@@ -165,7 +168,7 @@ post_add_worktree() {
 
 	while true; do
 		if [ -x "$search_dir/.wt/post-add-worktree" ]; then
-			"$search_dir/.wt/post-add-worktree" "$worktree_path"
+			"$search_dir/.wt/post-add-worktree" "$worktree_path" "$(get_main_worktree_dir)"
 			return 0
 		fi
 
@@ -188,7 +191,7 @@ post_add_worktree() {
 
 	# Global fallback: check ~/.wt/ if we didn't already walk through $HOME
 	if [ -x "$HOME/.wt/post-add-worktree" ]; then
-		"$HOME/.wt/post-add-worktree" "$worktree_path"
+		"$HOME/.wt/post-add-worktree" "$worktree_path" "$(get_main_worktree_dir)"
 		return 0
 	fi
 }
