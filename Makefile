@@ -1,4 +1,7 @@
-PREFIX ?= /usr/local
+# Default to the Homebrew prefix when available (e.g. /opt/homebrew on Apple
+# Silicon, /usr/local on Intel), otherwise fall back to /usr/local. Override
+# with `make install PREFIX=/somewhere`.
+PREFIX ?= $(shell brew --prefix 2>/dev/null || echo /usr/local)
 BINDIR = $(PREFIX)/bin
 BASH_COMPLETION_DIR ?= $(PREFIX)/etc/bash_completion.d
 ZSH_COMPLETION_DIR ?= $(PREFIX)/share/zsh/site-functions

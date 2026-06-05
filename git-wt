@@ -5,7 +5,7 @@ set -e
 # git-wt: A fast, interactive git worktree manager.
 # https://github.com/mattmcmanus/git-wt
 
-VERSION="0.1.0"
+VERSION="0.2.0"
 
 args=("$@")
 arg="${args[0]}"
@@ -136,9 +136,28 @@ clean_merged_worktrees() {
 			cd "$container_dir/$dir"
 			local removal_reason
 			if removal_reason=$(should_remove_worktree); then
-				echo "Removing worktree ($removal_reason): $dir"
-				cd "$main_worktree"
-				git worktree remove "$container_dir/$dir"
+				if [ -n "$(git status --porcelain)" ]; then
+					echo ""
+					echo "⚠  $dir ($removal_reason) has uncommitted changes:"
+					git status --short | sed 's/^/    /'
+					read -p "  Force delete this worktree? (y/N): " confirmation
+					case "$confirmation" in
+					[yY][eE][sS] | [yY])
+						echo "  → Force removed: $dir"
+						cd "$main_worktree"
+						git worktree remove --force "$container_dir/$dir"
+						;;
+					*)
+						echo "  → Kept (uncommitted changes): $dir"
+						cd "$main_worktree"
+						;;
+					esac
+					echo ""
+				else
+					echo "Removing worktree ($removal_reason): $dir"
+					cd "$main_worktree"
+					git worktree remove "$container_dir/$dir"
+				fi
 			else
 				echo "Skipping worktree: $dir"
 			fi

@@ -75,3 +75,58 @@ add_clean_test_worktree() {
     [ "$status" -eq 0 ]
     [[ "$output" =~ "Cleaned up" ]]
 }
+
+@test "clean force-deletes a dirty merged worktree when confirmed" {
+    create_non_bare_repo
+    add_clean_test_worktree "merged-feature"
+
+    # Leave uncommitted changes in the worktree
+    echo "dirty change" >> "$CONTAINER_DIR/merged-feature/branch.txt"
+
+    cd "$MAIN_WORKTREE"
+    git merge merged-feature
+
+    run bash -c "echo y | '$GIT_WT' clean"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "uncommitted changes" ]]
+    [[ "$output" =~ "branch.txt" ]]
+    [ ! -d "$CONTAINER_DIR/merged-feature" ]
+}
+
+@test "clean indents and blank-line separates a dirty worktree's status block" {
+    create_non_bare_repo
+    # An unmerged worktree that will be skipped, printed before the dirty block
+    add_clean_test_worktree "kept-feature"
+    add_clean_test_worktree "merged-feature"
+
+    # Leave an untracked file so the status has a "??" entry
+    echo "scratch" > "$CONTAINER_DIR/merged-feature/untracked.txt"
+
+    cd "$MAIN_WORKTREE"
+    git merge merged-feature
+
+    run bash -c "echo y | '$GIT_WT' clean"
+    [ "$status" -eq 0 ]
+    # Blank line separates entries
+    [[ "$output" == *$'\n\n'* ]]
+    # git status lines are indented under the header
+    [[ "$output" == *$'\n    ?? untracked.txt'* ]]
+    [ ! -d "$CONTAINER_DIR/merged-feature" ]
+}
+
+@test "clean keeps a dirty merged worktree when declined" {
+    create_non_bare_repo
+    add_clean_test_worktree "merged-feature"
+
+    # Leave uncommitted changes in the worktree
+    echo "dirty change" >> "$CONTAINER_DIR/merged-feature/branch.txt"
+
+    cd "$MAIN_WORKTREE"
+    git merge merged-feature
+
+    run bash -c "echo n | '$GIT_WT' clean"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "uncommitted changes" ]]
+    [[ "$output" =~ "branch.txt" ]]
+    [ -d "$CONTAINER_DIR/merged-feature" ]
+}
