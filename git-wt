@@ -5,7 +5,7 @@ set -e
 # git-wt: A fast, interactive git worktree manager.
 # https://github.com/mattmcmanus/git-wt
 
-VERSION="0.2.0"
+VERSION="0.2.1"
 
 args=("$@")
 arg="${args[0]}"
@@ -177,10 +177,12 @@ post_add_worktree() {
 	search_dir="$(pwd)"
 	local worktree_path
 	worktree_path="$(pwd)"
+	local main_worktree_path
+	main_worktree_path="$(get_main_worktree_dir)"
 
 	while true; do
 		if [ -x "$search_dir/.wt/post-add-worktree" ]; then
-			"$search_dir/.wt/post-add-worktree" "$worktree_path"
+			"$search_dir/.wt/post-add-worktree" "$worktree_path" "$main_worktree_path"
 			return 0
 		fi
 
@@ -203,7 +205,7 @@ post_add_worktree() {
 
 	# Global fallback: check ~/.wt/ if we didn't already walk through $HOME
 	if [ -x "$HOME/.wt/post-add-worktree" ]; then
-		"$HOME/.wt/post-add-worktree" "$worktree_path"
+		"$HOME/.wt/post-add-worktree" "$worktree_path" "$main_worktree_path"
 		return 0
 	fi
 }

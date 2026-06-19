@@ -35,6 +35,39 @@ HOOK
     [[ "$(cat "$CONTAINER_DIR/test-hook-container/hook-output.txt")" == "container-hook-ran" ]]
 }
 
+# get_main_worktree_dir only returns the actual main worktree (not a bare repo)
+# in a non-bare layout, so use that here to assert the main worktree argument.
+@test "hook: receives new worktree path and main worktree path as arguments" {
+    CONTAINER_DIR="$TEST_DIR/worktrees"
+    mkdir -p "$CONTAINER_DIR"
+    MAIN_WORKTREE="$CONTAINER_DIR/main"
+    git init "$MAIN_WORKTREE"
+    cd "$MAIN_WORKTREE"
+    echo "initial" > README.md
+    git add README.md
+    git commit -m "Initial commit"
+
+    mkdir -p "$CONTAINER_DIR/.wt"
+    cat > "$CONTAINER_DIR/.wt/post-add-worktree" << 'HOOK'
+#!/usr/bin/env bash
+echo "$1" > "$(pwd)/arg-new.txt"
+echo "$2" > "$(pwd)/arg-main.txt"
+HOOK
+    chmod +x "$CONTAINER_DIR/.wt/post-add-worktree"
+
+    run_post_add_hook "test-hook-args"
+
+    # Resolve symlinks (macOS /var -> /private/var) on both sides before
+    # comparing: pwd reports logical paths while git reports canonical ones.
+    local actual_new actual_main expected_new expected_main
+    actual_new="$(cd "$(cat "$CONTAINER_DIR/test-hook-args/arg-new.txt")" && pwd -P)"
+    actual_main="$(cd "$(cat "$CONTAINER_DIR/test-hook-args/arg-main.txt")" && pwd -P)"
+    expected_new="$(cd "$CONTAINER_DIR/test-hook-args" && pwd -P)"
+    expected_main="$(cd "$MAIN_WORKTREE" && pwd -P)"
+    [[ "$actual_new" == "$expected_new" ]]
+    [[ "$actual_main" == "$expected_main" ]]
+}
+
 @test "hook: walks up to find .wt/post-add-worktree in grandparent" {
     create_test_repo
 

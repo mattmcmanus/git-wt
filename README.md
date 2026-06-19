@@ -44,6 +44,15 @@ To uninstall:
 make uninstall
 ```
 
+### Development install
+
+To symlink the working-tree script (and `wt` alias) into `~/.bin` so local edits take effect immediately:
+
+```bash
+make install-dev               # or: make install-dev DEV_BINDIR=~/somewhere
+make uninstall-dev
+```
+
 ## Usage
 
 ### Switch worktrees
@@ -108,13 +117,23 @@ After creating a worktree, git-wt looks for `.wt/post-add-worktree` by walking u
 
 The first match wins. The hook must be executable.
 
+### Hook arguments
+
+The hook is invoked with two arguments:
+
+1. `$1` — the path to the newly created worktree
+2. `$2` — the path to the main worktree
+
 ### Example hook
 
 ```bash
 #!/usr/bin/env bash
 # .wt/post-add-worktree — run after creating a new worktree
+new_worktree="$1"
+main_worktree="$2"
+
 npm install
-cp .env.example .env
+cp "$main_worktree/.env" .env
 ```
 
 A hook at `~/.wt/post-add-worktree` serves as a global default for all projects.
